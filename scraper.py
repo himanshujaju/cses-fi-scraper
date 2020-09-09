@@ -57,15 +57,20 @@ def Logout(session_requests):
 	logout_result = session_requests.get(logout_url)
 	return
 
+# Checks if the table cell is a green tick.
+def IsGreenTick(element):
+	return "task-score icon full" == element.get('class')
+
 # Parses and returns a list of ids of solved tasks.
 def ParseSolvedProblems(problemset_result_tree):
-	rows = problemset_result_tree.xpath("//*/table[@border='']/tr")
+	rows = problemset_result_tree.xpath("//*/li[@class='task']")
 	solved_task_ids = []
 	for row in rows:
-		columns = row.xpath("td")
-		solved_string = str(columns[2].text).encode('raw_unicode_escape')
-		if solved_string == b'\\u2713':
-			problem_link = columns[1].xpath("a")[0].attrib['href']
+		print(etree.tostring(row))
+		columns = row.xpath("span")
+
+		if IsGreenTick(columns[1]):
+			problem_link = row.xpath("a")[0].attrib['href']
 			task_id = problem_link[-4:]
 			solved_task_ids.append(task_id)
 	return solved_task_ids
@@ -80,25 +85,22 @@ def GetSolvedProblems(session_requests):
 def GetSolution(session_requests, code_link):
 	task_results_url = session_requests.get(code_link)
 	tree = html.fromstring(task_results_url.content)
-	code = tree.xpath("//pre")[0]
+	code = tree.xpath("//pre")[-1]
 	return code.text_content()
 
 # Saves the solution to disk.
 def SaveTask(session_requests, task_id):
 	task_results_url = session_requests.get(results_url + task_id)
 	tree = html.fromstring(task_results_url.content)
-	rows = tree.xpath("//*[@border='']/tr")
+	rows = tree.xpath("//*/table[@class='wide']/tr")
 	for row in rows:
 		columns = row.xpath("td")
-		if len(columns) != 6:
-			continue
 
 		language = str(columns[1].text)
 		if language not in language_extension:
 			continue
 
-		solved_string = str(columns[4].text).encode('raw_unicode_escape')
-		if solved_string != b'\\u2713':
+		if not IsGreenTick(columns[4]):
 			continue
 
 		print("Saving solution for task : " + task_id)
