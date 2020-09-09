@@ -66,7 +66,6 @@ def ParseSolvedProblems(problemset_result_tree):
 	rows = problemset_result_tree.xpath("//*/li[@class='task']")
 	solved_task_ids = []
 	for row in rows:
-		print(etree.tostring(row))
 		columns = row.xpath("span")
 
 		if IsGreenTick(columns[1]):
